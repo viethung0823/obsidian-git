@@ -213,6 +213,35 @@ export class RotationManager {
     // holding weeks of screenshots is exactly what overflows GitHub's pack
     // size limit - chunking the *push* afterwards can't fix an oversized
     // commit that already exists.
+    // Prefers the vault's own proven scripts (auto_push.sh, git-push-chunks.sh)
+    // when present, since they're already tuned for this exact repo. Falls
+    // back to the built-in equivalents below when a vault doesn't have them.
+    private async runScriptIfPresent(
+        scriptName: string,
+        log: (msg: string) => void
+    ): Promise<boolean> {
+        const scriptPath = path.join(this.basePath(), scriptName);
+        try {
+            await fs.access(scriptPath);
+        } catch {
+            return false;
+        }
+        log(`Running ${scriptName}...`);
+        const result = await spawnAsync(scriptPath, [], {
+            cwd: this.basePath(),
+            env: this.env(),
+        });
+        for (const line of result.stdout.split("\n").filter(Boolean)) {
+            log(line);
+        }
+        if (result.error || result.code !== 0) {
+            throw new Error(
+                `${scriptName} failed: ${result.stderr || result.error?.message || `exit ${result.code}`}`
+            );
+        }
+        return true;
+    }
+
     private async commitInBatches(
         batchSize: number,
         oldLabel: string,
@@ -294,28 +323,61 @@ export class RotationManager {
         try {
             log(`Rotating ${plan.oldLabel} -> ${plan.newLabel}`);
 
-            await this.commitInBatches(
-                settings.commitBatchSize,
-                plan.oldLabel,
-                log
-            );
-
             const branch = await this.run(this.gitBin(), [
                 "rev-parse",
                 "--abbrev-ref",
                 "HEAD",
             ]);
-            log(`Pushing to ${plan.oldLabel}...`);
-            const pushed = await this.tryRun(this.gitBin(), [
-                "push",
-                "origin",
-                branch,
-            ]);
-            if (pushed === null) {
-                log(
-                    "Direct push failed (likely the GitHub pack size limit) - retrying in chunks..."
+
+            const usedAutoPush = await this.runScriptIfPresent(
+                "auto_push.sh",
+                log
+            );
+            if (!usedAutoPush) {
+                await this.commitInBatches(
+                    settings.commitBatchSize,
+                    plan.oldLabel,
+                    log
                 );
-                await this.pushInChunks(branch, settings.pushChunkSize, log);
+            }
+
+            // Never attempt one big `git push` for a backlog - that's what
+            // stalled out near GitHub's pack-size limit and blocked the
+            // shared commit queue for 26+ minutes the first time this ran.
+            // Always go through the vault's chunked-push script, or the
+            // built-in equivalent, whenever there's more than a small number
+            // of commits still unpushed.
+            await this.run(this.gitBin(), ["fetch", "origin", branch]);
+            const usedChunkScript = await this.runScriptIfPresent(
+                "git-push-chunks.sh",
+                log
+            );
+            if (!usedChunkScript) {
+                const unpushedCount = parseInt(
+                    await this.run(this.gitBin(), [
+                        "rev-list",
+                        "--count",
+                        `origin/${branch}..HEAD`,
+                    ]),
+                    10
+                );
+                if (unpushedCount === 0) {
+                    log("Nothing left to push.");
+                } else if (unpushedCount > settings.pushChunkSize) {
+                    log(
+                        `${unpushedCount} unpushed commit(s) - pushing in chunks of ${settings.pushChunkSize}...`
+                    );
+                    await this.pushInChunks(
+                        branch,
+                        settings.pushChunkSize,
+                        log
+                    );
+                } else {
+                    log(
+                        `Pushing ${unpushedCount} commit(s) to ${plan.oldLabel}...`
+                    );
+                    await this.run(this.gitBin(), ["push", "origin", branch]);
+                }
             }
 
             // Never delete or reset anything until the push is verified against origin.
