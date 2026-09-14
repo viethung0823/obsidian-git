@@ -20,6 +20,7 @@ import { ObsidianGitSettingsTab } from "src/setting/settings";
 import { StatusBar } from "src/statusBar";
 import { CustomMessageModal } from "src/ui/modals/customMessageModal";
 import AutomaticsManager from "./automaticsManager";
+import { RotationManager } from "./rotationManager";
 import { addCommmands } from "./commands";
 import {
     CONFLICT_OUTPUT_FILE,
@@ -64,6 +65,7 @@ import { EditorIntegration } from "./editor/editorIntegration";
 export default class ObsidianGit extends Plugin {
     gitManager!: GitManager;
     automaticsManager = new AutomaticsManager(this);
+    rotationManager = new RotationManager(this);
     tools = new Tools(this);
     localStorage = new LocalStorageSettings(this);
     settings!: ObsidianGitSettings;
@@ -500,6 +502,7 @@ export default class ObsidianGit extends Plugin {
 
         this.editorIntegration.onUnloadPlugin();
         this.automaticsManager.unload();
+        this.rotationManager.unload();
         this.branchBar?.remove();
         this.statusBar?.remove();
         this.statusBar = undefined;
@@ -620,6 +623,7 @@ export default class ObsidianGit extends Plugin {
                     if (!pausedAutomatics) {
                         await this.automaticsManager.init();
                     }
+                    await this.rotationManager.init();
 
                     if (pausedAutomatics) {
                         new Notice("Automatic routines are currently paused.");

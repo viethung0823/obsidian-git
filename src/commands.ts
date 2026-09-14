@@ -571,4 +571,30 @@ export function addCommmands(plugin: ObsidianGit) {
             return true;
         },
     });
+
+    if (Platform.isDesktopApp) {
+        plugin.addCommand({
+            id: "screenmemory-check-rotation-status",
+            name: "ScreenMemory: Check monthly rotation status",
+            checkCallback: (checking) => {
+                if (checking) {
+                    return plugin.settings.monthlyRotation.enabled;
+                }
+                void plugin.rotationManager.checkAndNotify(true);
+                return true;
+            },
+        });
+
+        plugin.addCommand({
+            id: "screenmemory-run-rotation",
+            name: "ScreenMemory: Rotate to new month now",
+            checkCallback: (checking) => {
+                if (checking) {
+                    return plugin.settings.monthlyRotation.enabled;
+                }
+                void plugin.rotationManager.promptRotation();
+                return true;
+            },
+        });
+    }
 }

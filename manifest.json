@@ -2,9 +2,9 @@
     "author": "Vinzent",
     "authorUrl": "https://github.com/Vinzent03",
     "id": "obsidian-git",
-    "name": "Git",
-    "description": "Integrate Git version control with automatic backup and other advanced features.",
+    "name": "Git (+ ScreenMemory rotation)",
+    "description": "Integrate Git version control with automatic backup and other advanced features. Fork adding monthly repo rotation for ScreenMemory-style vaults.",
     "isDesktopOnly": false,
     "fundingUrl": "https://ko-fi.com/vinzent",
-    "version": "2.39.0"
+    "version": "2.39.100"
 }

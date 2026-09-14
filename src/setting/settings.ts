@@ -990,6 +990,176 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     })
             );
 
+        if (Platform.isDesktopApp) {
+            new Setting(containerEl)
+                .setName("Monthly repo rotation")
+                .setHeading();
+
+            new Setting(containerEl)
+                .setName("Enable monthly rotation")
+                .setDesc(
+                    "Once a month, finish pushing outstanding changes to the current remote, then create/switch to a fresh dated repo and reset local git history. Intended for vaults where one folder (e.g. screenshots) grows without bound."
+                )
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(plugin.settings.monthlyRotation.enabled)
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.enabled = value;
+                            await plugin.saveSettings();
+                            plugin.rotationManager.unload();
+                            await plugin.rotationManager.init();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("GitHub owner")
+                .setDesc("GitHub account/org that owns the monthly repos.")
+                .addText((text) =>
+                    text
+                        .setValue(plugin.settings.monthlyRotation.owner)
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.owner =
+                                value.trim();
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("SSH host alias")
+                .setDesc(
+                    "Host entry from ~/.ssh/config used for the remote URL, e.g. myuser.github.com."
+                )
+                .addText((text) =>
+                    text
+                        .setValue(plugin.settings.monthlyRotation.sshHost)
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.sshHost =
+                                value.trim();
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Repo name prefix")
+                .setDesc('Monthly repos are named "<prefix>_MM_YYYY".')
+                .addText((text) =>
+                    text
+                        .setValue(plugin.settings.monthlyRotation.repoPrefix)
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.repoPrefix =
+                                value.trim();
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Rotated folder")
+                .setDesc(
+                    "Path relative to the vault root whose per-month subfolder (YYYY/MM) gets deleted locally once safely pushed."
+                )
+                .addText((text) =>
+                    text
+                        .setValue(
+                            plugin.settings.monthlyRotation.screenshotsFolder
+                        )
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.screenshotsFolder =
+                                value.trim();
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Create new repos as private")
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(plugin.settings.monthlyRotation.privateRepo)
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.privateRepo = value;
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Delete local files after confirmed push")
+                .setDesc(
+                    "Only ever deletes the completed month's folder, and only after the push is verified against GitHub."
+                )
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(
+                            plugin.settings.monthlyRotation.deleteAfterPush
+                        )
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.deleteAfterPush =
+                                value;
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Run automatically without confirmation")
+                .setDesc(
+                    "Off (recommended): rotation only runs when you trigger it from the command palette or status bar. On: runs by itself as soon as a new month is detected."
+                )
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(
+                            plugin.settings.monthlyRotation
+                                .autoRunWithoutConfirm
+                        )
+                        .onChange(async (value) => {
+                            plugin.settings.monthlyRotation.autoRunWithoutConfirm =
+                                value;
+                            await plugin.saveSettings();
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Commit batch size")
+                .setDesc(
+                    "Outstanding files are committed in batches of this many at a time, so no single commit is large enough to overflow GitHub's push limit."
+                )
+                .addText((text) =>
+                    text
+                        .setValue(
+                            String(
+                                plugin.settings.monthlyRotation.commitBatchSize
+                            )
+                        )
+                        .onChange(async (value) => {
+                            const n = parseInt(value, 10);
+                            if (!isNaN(n) && n > 0) {
+                                plugin.settings.monthlyRotation.commitBatchSize =
+                                    n;
+                                await plugin.saveSettings();
+                            }
+                        })
+                );
+
+            new Setting(containerEl)
+                .setName("Push chunk size")
+                .setDesc(
+                    "Fallback commit-count used to push in chunks if a direct push is rejected for being too large."
+                )
+                .addText((text) =>
+                    text
+                        .setValue(
+                            String(
+                                plugin.settings.monthlyRotation.pushChunkSize
+                            )
+                        )
+                        .onChange(async (value) => {
+                            const n = parseInt(value, 10);
+                            if (!isNaN(n) && n > 0) {
+                                plugin.settings.monthlyRotation.pushChunkSize =
+                                    n;
+                                await plugin.saveSettings();
+                            }
+                        })
+                );
+        }
+
         new Setting(containerEl).setName("Support").setHeading();
         new Setting(containerEl)
             .setName("Donate")

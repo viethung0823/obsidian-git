@@ -51,6 +51,18 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
         hunkCommands: false,
         statusBar: "disabled",
     },
+    monthlyRotation: {
+        enabled: false,
+        owner: "",
+        sshHost: "",
+        repoPrefix: "",
+        screenshotsFolder: "screenshots",
+        privateRepo: true,
+        deleteAfterPush: true,
+        autoRunWithoutConfirm: false,
+        commitBatchSize: 200,
+        pushChunkSize: 10,
+    },
     lineAuthor: {
         show: false,
         followMovement: "inactive",

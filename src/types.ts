@@ -85,6 +85,25 @@ export interface ObsidianGitSettings {
         showSigns: boolean;
         statusBar: "disabled" | "colored" | "monochrome";
     };
+    monthlyRotation: MonthlyRotationSettings;
+}
+
+/**
+ * Settings for the desktop-only monthly repository rotation feature: pushes
+ * the outgoing month to its own GitHub repo, then starts the new month with
+ * a clean local git history.
+ */
+export interface MonthlyRotationSettings {
+    enabled: boolean;
+    owner: string;
+    sshHost: string;
+    repoPrefix: string;
+    screenshotsFolder: string;
+    privateRepo: boolean;
+    deleteAfterPush: boolean;
+    autoRunWithoutConfirm: boolean;
+    commitBatchSize: number;
+    pushChunkSize: number;
 }
 
 /**
